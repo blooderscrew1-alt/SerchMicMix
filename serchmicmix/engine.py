@@ -498,12 +498,26 @@ class AudioEngine:
         }
 
     def shutdown(self) -> None:
+        """Detiene el hilo del motor y cierra todos los streams.
+
+        Al terminar se marca el estado como "parado": si no, el ultimo
+        ``_reconcile`` deja ``running`` en True y parece que el motor sigue
+        vivo despues de cerrar la aplicacion.
+        """
         self._stop.set()
         self._wake.set()
         try:
-            self._thread.join(timeout=2.0)
+            self._thread.join(timeout=3.0)
         except Exception:
             pass
+        with self._lock:
+            for slot in list(self.inputs.values()):
+                self._close_input(slot)
+            for slot in list(self.outputs.values()):
+                self._close_output(slot)
+            self._active_inputs = []
+            self._active_outputs = []
+        self.stats.update({"running": False, "inputs_open": 0, "outputs_open": 0})
 
     # ----------------------------------------------------------- interno
     def _mark_dirty(self) -> None:

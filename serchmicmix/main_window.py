@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import threading
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import QEvent, QRect, QSize, Qt, QTimer
 from PySide6.QtGui import (
     QAction,
     QColor,
     QFont,
+    QGuiApplication,
     QIcon,
     QLinearGradient,
     QPainter,
@@ -26,13 +27,14 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSlider,
+    QSystemTrayIcon,
     QTextBrowser,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from . import APP_TITLE, devices as dev_mod
+from . import APP_TITLE, autostart, devices as dev_mod
 from . import icons, theme, vbcable
 from .config import Config, config_dir
 from .engine import AudioEngine
@@ -83,19 +85,18 @@ def make_logo(size: int = 64) -> QPixmap:
 
 
 class MainWindow(QWidget):
-    def __init__(self) -> None:
+    def __init__(self, start_hidden: bool = False) -> None:
         super().__init__()
         self.config = Config()
+        self._start_hidden = bool(start_hidden)
+        self._saliendo = False
 
         self.setObjectName("Root")
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setWindowTitle("Serch MicMix — Mezclador de audio")
+        self.setWindowTitle(f"{APP_TITLE} — Mezclador de audio")
         self.setWindowIcon(QIcon(make_logo(128)))
-        self.resize(
-            int(self.config.get("window", "w", default=1180)),
-            int(self.config.get("window", "h", default=760)),
-        )
         self.setMinimumSize(QSize(940, 620))
+        self._restaurar_geometria()
 
         self.engine = AudioEngine(self.config)
 
@@ -114,9 +115,51 @@ class MainWindow(QWidget):
 
         self._build_ui()
         self._build_timer()
+        self._build_tray()
 
         # Primer escaneo en segundo plano.
         QTimer.singleShot(80, lambda: self._start_scan(hard=True))
+
+    # ------------------------------------------------------- geometria/ajustes
+    def _restaurar_geometria(self) -> None:
+        """Recupera tamano y posicion de la ultima vez.
+
+        Se comprueba que la posicion siga estando en alguna pantalla: si
+        desconectaste un monitor, la ventana apareceria fuera de la vista.
+        """
+        ancho = int(self.config.get("window", "w", default=1180))
+        alto = int(self.config.get("window", "h", default=760))
+        self.resize(max(940, ancho), max(620, alto))
+
+        x = self.config.get("window", "x", default=None)
+        y = self.config.get("window", "y", default=None)
+        if x is None or y is None:
+            return
+
+        rect = QRect(int(x), int(y), max(940, ancho), max(620, alto))
+        try:
+            pantallas = [p.availableGeometry() for p in QGuiApplication.screens()]
+        except Exception:
+            pantallas = []
+        if any(p.intersects(rect) for p in pantallas):
+            self.move(int(x), int(y))
+
+    def _guardar_geometria(self) -> None:
+        try:
+            maximizada = self.isMaximized() or self.isFullScreen()
+            self.config.set("window", "maximized", value=maximizada, save=False)
+            if not maximizada:
+                self.config.set("window", "w", value=self.width(), save=False)
+                self.config.set("window", "h", value=self.height(), save=False)
+                self.config.set("window", "x", value=self.x(), save=False)
+                self.config.set("window", "y", value=self.y(), save=True)
+            else:
+                self.config.save()
+        except Exception:
+            pass
+
+    def _minimizar_a_bandeja(self) -> bool:
+        return bool(self.config.get("ui", "minimize_to_tray", default=True))
 
     # -------------------------------------------------------------------- UI
     def _build_ui(self) -> None:
@@ -220,10 +263,76 @@ class MainWindow(QWidget):
         menu.addAction(act_folder)
 
         menu.addSeparator()
+        menu.addMenu(self._menu_sonido_windows())
+
+        self.act_min_tray = QAction("Minimizar a la bandeja al minimizar", self)
+        self.act_min_tray.setCheckable(True)
+        self.act_min_tray.setChecked(self._minimizar_a_bandeja())
+        self.act_min_tray.triggered.connect(self._set_minimizar_a_bandeja)
+        menu.addAction(self.act_min_tray)
+
+        self.act_autostart = QAction("Iniciar con Windows", self)
+        self.act_autostart.setCheckable(True)
+        self.act_autostart.setChecked(autostart.esta_activo())
+        self.act_autostart.triggered.connect(self._set_autostart)
+        menu.addAction(self.act_autostart)
+
+        menu.addSeparator()
         act_about = QAction("Acerca de Serch MicMix", self)
         act_about.triggered.connect(self._about)
         menu.addAction(act_about)
         return menu
+
+    # ------------------------------------------------- sonido de Windows
+    def _menu_sonido_windows(self) -> QMenu:
+        """Accesos directos a los paneles de sonido de Windows.
+
+        ``mmsys.cpl`` sigue existiendo en Windows 11 y es la unica forma de
+        llegar a la pestana de sonidos del sistema; ``ms-settings:sound`` abre
+        en cambio la pantalla moderna de Configuracion.
+        """
+        submenu = QMenu("Sonido de Windows", self)
+
+        opciones = (
+            ("Cambiar sonidos del sistema", 2),
+            ("Dispositivos de reproducción", 0),
+            ("Dispositivos de grabación", 1),
+        )
+        for etiqueta, pestana in opciones:
+            accion = QAction(etiqueta, self)
+            accion.triggered.connect(lambda _=False, p=pestana: self._abrir_panel_sonido(p))
+            submenu.addAction(accion)
+
+        submenu.addSeparator()
+        act_config = QAction("Configuración de sonido (Windows)", self)
+        act_config.triggered.connect(lambda: self._abrir_uri("ms-settings:sound"))
+        submenu.addAction(act_config)
+
+        act_mezclador = QAction("Mezclador de volumen", self)
+        act_mezclador.triggered.connect(lambda: self._abrir_uri("ms-settings:apps-volume"))
+        submenu.addAction(act_mezclador)
+        return submenu
+
+    def _abrir_panel_sonido(self, pestana: int) -> None:
+        import subprocess
+
+        try:
+            subprocess.Popen(
+                ["rundll32.exe", "shell32.dll,Control_RunDLL", f"mmsys.cpl,,{pestana}"],
+                close_fds=True,
+            )
+        except Exception as exc:
+            self.status_label.setText(f"No se pudo abrir el panel de sonido: {exc}")
+
+    def _abrir_uri(self, uri: str) -> None:
+        import os
+
+        try:
+            os.startfile(uri)  # noqa: S606
+        except Exception:
+            # Si la URI no existe en esta version de Windows, se cae al panel
+            # clasico, que esta en todas.
+            self._abrir_panel_sonido(2)
 
     def _build_banner(self) -> QWidget:
         banner = QFrame()
@@ -942,6 +1051,22 @@ class MainWindow(QWidget):
             2º Altavoces del monitor, 3º CABLE Input. Al encender las Bluetooth suena
             por ellas; si las apagas, el audio pasa solo a los altavoces.</p>
 
+            <h3 style="color:{theme.ACCENT}">Bandeja, arranque y sonido de Windows</h3>
+            <ul>
+              <li><b>Minimizar</b> esconde la ventana en la bandeja (junto al
+              reloj) y <b>el audio sigue funcionando</b>. Haz clic en el icono
+              para volver.</li>
+              <li><b>Cerrar con la X sale del programa de verdad.</b> Si quieres
+              que siga de fondo, minimiza en vez de cerrar.</li>
+              <li><b>⋮ → Iniciar con Windows</b>: arranca solo al encender el PC,
+              ya minimizado en la bandeja. No pide administrador.</li>
+              <li><b>⋮ → Sonido de Windows</b>: abre directamente
+              <i>Cambiar sonidos del sistema</i>, los dispositivos de
+              reproducción o los de grabación, sin buscar por los menús.</li>
+              <li>Todos los ajustes se guardan solos y se recuperan al volver a
+              abrir, incluida la posición de la ventana.</li>
+            </ul>
+
             <h3 style="color:{theme.ACCENT}">Consejos</h3>
             <ul>
               <li>Botones <b>Mic</b> y <b>Música</b> de cada salida: eligen qué
@@ -953,6 +1078,9 @@ class MainWindow(QWidget):
               <b>Actualizar</b> o usa <b>⋮ → Reiniciar motor</b>.</li>
               <li>Las <b>acciones rápidas</b> desactivan la prioridad automática,
               porque eligen las salidas a mano.</li>
+              <li>Si un micrófono lleva un rato encendido y la tarjeta avisa
+              <b>«Sin señal»</b>, es que el dispositivo no está entregando audio:
+              revisa su volumen en Windows o el permiso de privacidad.</li>
             </ul>
 
             <p style="color:{theme.TEXT_DIM}">Los auriculares con micrófono suelen
@@ -988,6 +1116,123 @@ class MainWindow(QWidget):
             os.startfile(str(path))  # noqa: S606
         except Exception:
             pass
+
+    # --------------------------------------------- bandeja y arranque automatico
+    def _build_tray(self) -> None:
+        """Icono en la bandeja del sistema.
+
+        La ventana puede esconderse aqui y el audio sigue funcionando, que es
+        justo lo que se quiere cuando la aplicacion arranca con Windows.
+        """
+        self.tray = None
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            self.status_label.setText(
+                "Este sistema no tiene bandeja de iconos; la ventana no podrá ocultarse."
+            )
+            return
+
+        self.tray = QSystemTrayIcon(QIcon(make_logo(128)), self)
+        self.tray.setToolTip(f"{APP_TITLE} — mezclador de audio")
+
+        menu = QMenu()
+        act_abrir = QAction(f"Abrir {APP_TITLE}", self)
+        act_abrir.triggered.connect(self._mostrar_ventana)
+        menu.addAction(act_abrir)
+
+        self.tray_autostart = QAction("Iniciar con Windows", self)
+        self.tray_autostart.setCheckable(True)
+        self.tray_autostart.setChecked(autostart.esta_activo())
+        self.tray_autostart.triggered.connect(self._set_autostart)
+        menu.addAction(self.tray_autostart)
+
+        menu.addSeparator()
+        act_sonidos = QAction("Cambiar sonidos del sistema", self)
+        act_sonidos.triggered.connect(lambda: self._abrir_panel_sonido(2))
+        menu.addAction(act_sonidos)
+
+        menu.addSeparator()
+        act_salir = QAction("Salir", self)
+        act_salir.triggered.connect(self._salir)
+        menu.addAction(act_salir)
+
+        self.tray.setContextMenu(menu)
+        self.tray.activated.connect(self._on_tray_activated)
+        self.tray.show()
+
+        if self._start_hidden:
+            self.hide()
+            self.tray.showMessage(
+                APP_TITLE,
+                "Se ha iniciado en la bandeja. Haz clic en el icono para abrir la ventana.",
+                QSystemTrayIcon.Information,
+                4000,
+            )
+
+    def _on_tray_activated(self, motivo) -> None:
+        if motivo in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick):
+            self._mostrar_ventana()
+
+    def _mostrar_ventana(self) -> None:
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def _ocultar_a_bandeja(self) -> None:
+        if self.tray is None:
+            return
+        self.hide()
+        if not getattr(self, "_aviso_bandeja_mostrado", False):
+            self._aviso_bandeja_mostrado = True
+            self.tray.showMessage(
+                APP_TITLE,
+                "Sigue funcionando en la bandeja. Haz clic en el icono para volver.",
+                QSystemTrayIcon.Information,
+                3000,
+            )
+
+    def _set_minimizar_a_bandeja(self, activado: bool) -> None:
+        self.config.set("ui", "minimize_to_tray", value=bool(activado))
+        for accion in (getattr(self, "act_min_tray", None),):
+            if accion is not None and accion.isChecked() != bool(activado):
+                accion.setChecked(bool(activado))
+
+    def _set_autostart(self, activado: bool) -> None:
+        ok, mensaje = autostart.establecer(bool(activado))
+        if ok:
+            # El registro es la fuente de verdad: se vuelve a leer para que la
+            # casilla refleje el estado real, no lo que se acaba de pedir.
+            real = autostart.esta_activo()
+            if activado and not real:
+                ok, mensaje = False, "No se pudo confirmar el cambio en el registro."
+            else:
+                self.status_label.setText(
+                    "Se iniciará con Windows (minimizado en la bandeja)."
+                    if real
+                    else "Ya no se iniciará con Windows."
+                )
+        for accion in (getattr(self, "act_autostart", None), getattr(self, "tray_autostart", None)):
+            if accion is not None:
+                accion.blockSignals(True)
+                accion.setChecked(autostart.esta_activo())
+                accion.blockSignals(False)
+        if not ok:
+            QMessageBox.warning(self, "Arranque con Windows", mensaje or "No se pudo cambiar.")
+
+    def changeEvent(self, event) -> None:  # noqa: N802
+        """Al minimizar, se esconde a la bandeja (si esta activado)."""
+        if (
+            event.type() == QEvent.Type.WindowStateChange
+            and self.isMinimized()
+            and self._minimizar_a_bandeja()
+            and self.tray is not None
+            and not self._saliendo
+        ):
+            QTimer.singleShot(0, self._ocultar_a_bandeja)
+        super().changeEvent(event)
+
+    def _salir(self) -> None:
+        self._saliendo = True
+        self.close()
 
     # --------------------------------------------------------------- presets
     def _apply_preset(self, kind: str) -> None:
@@ -1151,17 +1396,58 @@ class MainWindow(QWidget):
 
     # ---------------------------------------------------------------- cierre
     def closeEvent(self, event) -> None:  # noqa: N802
+        """Cierra la aplicacion **por completo**.
+
+        Cerrar con la X termina el proceso, no lo deja escondido en la
+        bandeja: para eso esta el boton de minimizar. El orden importa:
+        primero se para todo lo que genera trabajo, luego se cierran los
+        streams y solo al final se libera PortAudio.
+        """
+        self._saliendo = True
+        event.accept()
+
+        # 1. Guardar como estaba todo (para el siguiente arranque).
+        self._guardar_geometria()
+
+        # 2. Parar temporizadores: que nadie pida nada nuevo.
+        for nombre in ("_timer", "_watch_timer"):
+            temporizador = getattr(self, nombre, None)
+            if temporizador is not None:
+                try:
+                    temporizador.stop()
+                except Exception:
+                    pass
+
+        # 3. Quitar el icono de la bandeja.
         try:
-            self.config.set("window", "w", value=self.width(), save=False)
-            self.config.set("window", "h", value=self.height())
+            if self.tray is not None:
+                self.tray.hide()
         except Exception:
             pass
+
+        # 4. Cerrar los streams y esperar a que el hilo del motor termine.
         try:
-            self._timer.stop()
+            self.engine.disable_all(persist=False)
         except Exception:
             pass
         try:
             self.engine.shutdown()
         except Exception:
             pass
+
+        # 5. Liberar PortAudio y el COM asociado, para no dejar la tarjeta
+        #    de sonido ocupada.
+        try:
+            dev_mod.cerrar_portaudio()
+        except Exception:
+            pass
+
         super().closeEvent(event)
+
+        # 6. Salir del bucle de la aplicacion y no dejar nada vivo detras.
+        try:
+            aplicacion = QApplication.instance()
+            if aplicacion is not None:
+                aplicacion.quit()
+        except Exception:
+            pass

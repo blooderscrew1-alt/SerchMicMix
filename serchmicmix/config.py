@@ -74,7 +74,10 @@ def default_config() -> dict[str, Any]:
         # bocina Bluetooth apagada, por ejemplo) y "removed" evita que vuelvan
         # a anadirse solos los que el usuario haya quitado a proposito.
         "priority": {"enabled": False, "order": [], "names": {}, "removed": []},
-        "window": {"w": 1180, "h": 760},
+        # Posicion y tamano de la ventana. x/y en None significa "centrar".
+        "window": {"w": 1180, "h": 760, "x": None, "y": None, "maximized": False},
+        # Ajustes de la ventana y de la bandeja del sistema.
+        "ui": {"minimize_to_tray": True},
         "vbcable": {"last_url": "", "install_dir": "", "pack_version": ""},
     }
 

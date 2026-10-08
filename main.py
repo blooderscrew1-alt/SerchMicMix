@@ -1,4 +1,4 @@
-﻿"""Punto de entrada de serchmicmix.
+"""Punto de entrada de serchmicmix.
 
 Uso:
     python main.py            (o run.bat)
@@ -139,6 +139,24 @@ def _mensaje_dependencias(problemas: list[tuple[str, str, str]]) -> str:
     return "\n".join(lineas)
 
 
+def _leer_argumentos() -> tuple[bool, float]:
+    """Devuelve (arrancar_en_bandeja, segundos_para_cerrar_solo).
+
+    ``--tray`` lo usa el arranque automatico de Windows para no abrir la
+    ventana al iniciar sesion. ``--autocerrar`` solo se usa en las pruebas
+    para comprobar que el proceso termina de verdad al cerrar.
+    """
+    en_bandeja = "--tray" in sys.argv or "--minimizado" in sys.argv
+    autocerrar = 0.0
+    for argumento in sys.argv:
+        if argumento.startswith("--autocerrar="):
+            try:
+                autocerrar = float(argumento.split("=", 1)[1])
+            except ValueError:
+                autocerrar = 0.0
+    return en_bandeja, autocerrar
+
+
 def main() -> int:
     log_handle = _prepare_logging()
     _install_excepthook(log_handle)
@@ -152,7 +170,9 @@ def main() -> int:
         _avisar("Serch MicMix — falta un componente", texto)
         return 3
 
-    from PySide6.QtCore import Qt  # noqa: F401
+    en_bandeja, autocerrar = _leer_argumentos()
+
+    from PySide6.QtCore import Qt, QTimer  # noqa: F401
     from PySide6.QtGui import QFont, QIcon
     from PySide6.QtWidgets import QApplication
 
@@ -162,6 +182,8 @@ def main() -> int:
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
     app.setOrganizationName(APP_NAME)
+    # Al cerrar la ultima ventana se sale del todo, sin dejar el proceso vivo.
+    app.setQuitOnLastWindowClosed(True)
     app.setStyle("Fusion")
 
     fuente = QFont()
@@ -172,9 +194,14 @@ def main() -> int:
 
     from serchmicmix.main_window import MainWindow, make_logo
 
-    ventana = MainWindow()
+    ventana = MainWindow(start_hidden=en_bandeja)
     ventana.setWindowIcon(QIcon(make_logo(128)))
-    ventana.show()
+    if not en_bandeja:
+        ventana.show()
+
+    if autocerrar > 0:
+        # Solo para pruebas: cierra la ventana y comprueba que el proceso muere.
+        QTimer.singleShot(int(autocerrar * 1000), ventana.close)
 
     return app.exec()
 

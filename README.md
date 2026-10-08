@@ -24,7 +24,11 @@ complicados.
 | 🎧 **VB-Cable en un clic** | Si no está instalado, Serch MicMix lo **busca, lo descarga de la web oficial y lo instala** por ti. |
 | ⚡ **Acciones rápidas** | «Micrófono al PC», «Escuchar mi micrófono», «Música a las bocinas», «Mezclar todo» y «Detener todo». |
 | 🔇 **Silenciar todo** | Corta todo el sonido sin perder la configuración de qué estaba encendido. |
-| 💾 **Recuerda tus ajustes** | Al cerrar guarda qué dispositivos estaban activos, sus volúmenes, el orden de prioridad y el tamaño de la ventana. |
+| 🗂️ **Bandeja del sistema** | Minimizar la esconde en la bandeja y **el audio sigue funcionando**. Clic en el icono para volver. |
+| 🚀 **Iniciar con Windows** | Un clic y arranca solo al iniciar sesión, ya minimizado en la bandeja. Sin permisos de administrador. |
+| 🎛️ **Sonido de Windows** | Accesos directos a *Cambiar sonidos del sistema*, dispositivos de reproducción y de grabación, sin buscarlos por los menús. |
+| 💾 **Recuerda tus ajustes** | Al cerrar guarda dispositivos activos, volúmenes, orden de prioridad, **posición y tamaño de la ventana** y tus preferencias. |
+| 🧹 **Cierre limpio** | Cerrar con la X termina el proceso de verdad: cierra los streams y libera la tarjeta de sonido. |
 
 ---
 
@@ -226,6 +230,68 @@ altavoces del monitor. Las vuelves a encender → regresa a las Bluetooth.
 
 ---
 
+## 🗂️ Bandeja, arranque con Windows y sonido del sistema
+
+### Minimizar a la bandeja
+
+Al minimizar, la ventana se esconde en la **bandeja del sistema** (junto al
+reloj) y **el audio sigue funcionando**: es lo cómodo para dejarlo mezclando de
+fondo sin ocupar sitio.
+
+* **Clic** en el icono de la bandeja → vuelve la ventana.
+* **Clic derecho** → menú con *Abrir*, *Iniciar con Windows*, *Cambiar sonidos
+  del sistema* y *Salir*.
+
+Se puede desactivar en **⋮ → Minimizar a la bandeja al minimizar**.
+
+> **Cerrar con la X sale del programa de verdad**, no lo deja escondido. Si
+> quieres que siga en segundo plano, **minimiza** en vez de cerrar.
+
+### Iniciar con Windows
+
+**⋮ → Iniciar con Windows** (o desde el menú de la bandeja). Arranca solo al
+iniciar sesión, **ya minimizado en la bandeja**, así que no molesta.
+
+Detalles:
+
+* Se registra en `HKEY_CURRENT_USER\...\Run`, que **no pide permisos de
+  administrador** y solo afecta a tu usuario.
+* El comando usa `pythonw.exe` (sin consola) y `main.py --tray`, de modo que no
+  aparece ninguna ventana negra al arrancar.
+* La casilla refleja siempre el **estado real del registro**, no lo que se acaba
+  de pedir. Si algo falla, te lo dice con un aviso.
+
+### Abrir el sonido de Windows
+
+En **⋮ → Sonido de Windows** tienes accesos directos a:
+
+| Opción | Qué abre |
+|---|---|
+| **Cambiar sonidos del sistema** | La pestaña *Sonidos* de Windows (`mmsys.cpl`). |
+| **Dispositivos de reproducción** | La pestaña *Reproducción*, para elegir altavoces predeterminados. |
+| **Dispositivos de grabación** | La pestaña *Grabación*, para el micrófono predeterminado. |
+| **Configuración de sonido (Windows)** | La pantalla moderna de Configuración. |
+| **Mezclador de volumen** | El mezclador por aplicación. |
+
+> Te ahorra el paseo de siempre: *Configuración → Sistema → Sonido → Más
+> opciones*. Y es justo lo que hace falta cuando quieres que otra aplicación
+> reciba el audio del cable virtual.
+
+### Todo se recuerda
+
+Cada cambio se guarda al momento y se recupera en el siguiente arranque:
+
+* Qué **dispositivos** estaban encendidos y su volumen.
+* El **orden de prioridad** de las salidas y cuáles quitaste.
+* La **mezcla maestra**, el limitador y el modo de la lista de dispositivos.
+* La **posición, el tamaño** y si la ventana estaba **maximizada**.
+* Si **minimiza a la bandeja**.
+
+Si desconectas el monitor donde estaba la ventana, se recoloca sola en la
+pantalla principal en vez de aparecer fuera de la vista.
+
+---
+
 ## 🎧 VB-Cable: qué es y cómo lo instala Serch MicMix
 
 **VB-Cable** es un *cable de audio virtual* gratuito de [VB-Audio](https://vb-audio.com/Cable/index.htm).
@@ -319,6 +385,7 @@ serchmicmix/
 │   ├── icons.py             Iconos vectoriales dibujados con QPainter
 │   ├── theme.py             Paleta y hoja de estilos
 │   ├── install_dialog.py    Asistente de instalación paso a paso
+│   ├── autostart.py         Arranque con Windows (clave Run del registro)
 │   └── config.py            Guardado de ajustes (%APPDATA%\SerchMicMix\config.json)
 ├── tests/
 │   └── test_core.py         Pruebas del núcleo (anillos, remuestreo, motor, prioridad)

@@ -297,6 +297,20 @@ def refresh_portaudio() -> None:
         pass
 
 
+def cerrar_portaudio() -> None:
+    """Libera PortAudio por completo.
+
+    Se llama **solo al cerrar la aplicacion**, para soltar de verdad los
+    dispositivos y el COM asociado. Sin esto, un cierre rapido puede dejar la
+    tarjeta de sonido ocupada unos segundos y dar la sensacion de que el
+    proceso sigue vivo.
+    """
+    try:
+        sd._terminate()
+    except Exception:
+        pass
+
+
 def refresh_wasapi_devices() -> bool:
     """Pide a PortAudio que vuelva a enumerar los dispositivos WASAPI.
 

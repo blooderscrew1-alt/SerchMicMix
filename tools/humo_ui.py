@@ -69,7 +69,10 @@ def main() -> int:
         return 1 if PROBLEMS else 0
 
     ikey = window.inputs[0].key
-    okey = window.outputs[0].key
+    #: Clave de la salida que consiguio abrirse. No se fija de antemano: si un
+    #: dispositivo concreto esta ocupado (un ecualizador de terceros, por
+    #: ejemplo), la prueba pasa a la siguiente en vez de dar un falso fallo.
+    elegido = {"out": window.outputs[0].key}
 
     def toggle_input():
         window._on_card_toggle(ikey, True)
@@ -88,15 +91,29 @@ def main() -> int:
     step("encender/apagar una entrada (clic en la tarjeta)", toggle_input)
 
     def toggle_output():
-        window._on_card_toggle(okey, True)
-        abierto = _wait(lambda: window.engine.snapshot()["outputs"][okey]["open"], 15.0)
-        snap = window.engine.snapshot()
-        _assert(abierto, "el stream de salida no se abrio: " + str(snap["outputs"][okey]["error"]))
-        activo = _wait(lambda: bool(getattr(window.engine.outputs[okey].stream, "active", False)), 8.0)
-        _assert(activo, "el stream de salida no se arranco (no sonaria nada)")
-        window._on_card_toggle(okey, False)
-        pump(600)
-        _assert(not window.engine.snapshot()["outputs"][okey]["enabled"], "la salida no se apago")
+        """Enciende una salida y comprueba que su stream se arranca de verdad.
+
+        Se prueban las salidas en orden hasta que una abra: asi la prueba mide
+        el mecanismo y no la disponibilidad de un dispositivo concreto.
+        """
+        intentos: list[str] = []
+        for dev in window.outputs:
+            window._on_card_toggle(dev.key, True)
+            abierto = _wait(lambda d=dev: window.engine.snapshot()["outputs"][d.key]["open"], 12.0)
+            if not abierto:
+                estado = window.engine.snapshot()["outputs"][dev.key]
+                intentos.append(f"{dev.name}: {estado['error'] or 'no abrio'}")
+                window._on_card_toggle(dev.key, False)
+                pump(300)
+                continue
+            activo = _wait(lambda d=dev: bool(getattr(window.engine.outputs[d.key].stream, "active", False)), 8.0)
+            _assert(activo, f"el stream de salida de {dev.name} no se arranco (no sonaria nada)")
+            elegido["out"] = dev.key
+            window._on_card_toggle(dev.key, False)
+            pump(600)
+            _assert(not window.engine.snapshot()["outputs"][dev.key]["enabled"], "la salida no se apago")
+            return
+        _assert(False, "ninguna salida consiguio abrirse -> " + " | ".join(intentos[:3]))
 
     step("encender/apagar una salida", toggle_output)
 
@@ -134,9 +151,10 @@ def main() -> int:
         window._on_card_solo(ikey, False), pump(120)))
 
     step("filtros Mic/Musica de la salida", lambda: (
-        window._on_card_source(okey, "music", False), pump(120),
-        _assert(window.engine.snapshot()["outputs"][okey]["sources"]["music"] is False, "filtro no aplicado"),
-        window._on_card_source(okey, "music", True), pump(120)))
+        window._on_card_source(elegido["out"], "music", False), pump(120),
+        _assert(window.engine.snapshot()["outputs"][elegido["out"]]["sources"]["music"] is False,
+                "filtro no aplicado"),
+        window._on_card_source(elegido["out"], "music", True), pump(120)))
 
     # En esta prueba no queremos dialogos modales: simulamos la respuesta y
     # comprobamos aparte que la peticion se hace cuando falta VB-Cable.
@@ -165,6 +183,9 @@ def main() -> int:
 
     # ---------------------------------------------------------- prioridad
     step("activar la prioridad automatica", lambda: (
+        # La lista de prioridad se guarda entre ejecuciones: se completa antes
+        # para que la prueba no dependa de lo que quedara de la vez anterior.
+        window._priority_add_all(), pump(200),
         window.prio_toggle.setChecked(True), window._on_priority_toggled(True), pump(600),
         _assert(window.engine.priority_mode, "el motor no activo el modo prioridad"),
         _assert(window.priority_page.isVisible() and not window.outputs_page.isVisible(),
@@ -226,8 +247,78 @@ def main() -> int:
         window._on_card_toggle(window.inputs[0].key, True), pump(800),
         window._on_card_toggle(window.inputs[0].key, False), pump(300)))
 
-    window.close()
-    pump(400)
+    # ------------------------------------------- bandeja, menús y persistencia
+    def check_menu_sonido():
+        submenu = window._menu_sonido_windows()
+        textos = [a.text() for a in submenu.actions()]
+        _assert(any("sonidos del sistema" in t.lower() for t in textos),
+                f"falta 'Cambiar sonidos del sistema': {textos}")
+        _assert(any("grabación" in t.lower() for t in textos), "faltan los dispositivos de grabación")
+        _assert(any("reproducción" in t.lower() for t in textos), "faltan los de reproducción")
+
+    step("menú «Sonido de Windows» con la opción de sonidos del sistema", check_menu_sonido)
+
+    def check_persistencia_ui():
+        original = bool(window.config.get("ui", "minimize_to_tray", default=True))
+        window._set_minimizar_a_bandeja(False)
+        pump(80)
+        _assert(window.config.get("ui", "minimize_to_tray") is False,
+                "no se guardó 'minimizar a la bandeja' = False")
+        window._set_minimizar_a_bandeja(True)
+        pump(80)
+        _assert(window.config.get("ui", "minimize_to_tray") is True,
+                "no se guardó 'minimizar a la bandeja' = True")
+        window._set_minimizar_a_bandeja(original)
+        pump(60)
+
+    step("el ajuste de minimizar a la bandeja se guarda", check_persistencia_ui)
+
+    def check_geometria():
+        window.resize(1120, 704)
+        window._guardar_geometria()
+        pump(80)
+        ancho = int(window.config.get("window", "w", default=0))
+        alto = int(window.config.get("window", "h", default=0))
+        _assert(ancho == 1120 and alto == 704, f"geometría no guardada: {ancho}x{alto}")
+        _assert("maximized" in (window.config.get("window", default={}) or {}),
+                "no se guarda el estado maximizado")
+
+    step("la geometría de la ventana se guarda para el próximo arranque", check_geometria)
+
+    def check_autostart_disponible():
+        from serchmicmix import autostart
+        _assert(autostart.comando() is not None,
+                "no se pudo construir el comando de arranque automático")
+        _assert("--tray" in str(autostart.comando()),
+                "el arranque automático no abre en la bandeja")
+        # No se activa para no tocar el registro durante la prueba.
+
+    step("el arranque con Windows genera un comando válido", check_autostart_disponible)
+
+    def check_bandeja():
+        _assert(hasattr(window, "tray"), "no existe el icono de bandeja")
+        from PySide6.QtWidgets import QSystemTrayIcon
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            _assert(window.tray is not None, "hay bandeja del sistema pero no se creó el icono")
+        else:
+            print("       (sin bandeja del sistema en este entorno; se omite)")
+
+    step("icono en la bandeja del sistema", check_bandeja)
+
+    # ------------------------------------------------------ cierre completo
+    def check_cierre():
+        window._on_card_toggle(window.inputs[0].key, True)
+        pump(700)
+        _assert(window.engine.snapshot()["stats"]["running"], "el motor no arrancó antes de cerrar")
+        window.close()
+        pump(700)
+        _assert(not window.engine.snapshot()["stats"]["running"],
+                "el motor sigue activo despues de cerrar la ventana")
+        _assert(window.engine.stats.get("outputs_open") == 0
+                and window.engine.stats.get("inputs_open") == 0,
+                "quedaron streams abiertos tras cerrar")
+
+    step("al cerrar se apaga todo (motor y streams)", check_cierre)
 
     print("-" * 60)
     if PROBLEMS:
