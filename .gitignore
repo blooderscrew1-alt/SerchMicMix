@@ -1,0 +1,35 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# --- Archivos que generan las herramientas de diagnostico ---
+diagnostico.txt
+reparar.txt
+error.log
+*.log
+
+# --- Secretos y configuracion local ---
+.env
+config.local.json
+
+# --- Windows ---
+Thumbs.db
+desktop.ini
+*.lnk
+
+# --- Editores ---
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- Sistema ---
+.DS_Store

@@ -1,0 +1,5 @@
+# AudioMix - dependencias
+# Todas tienen ruedas para Windows x64 y ARM64 en Python 3.9 - 3.14
+PySide6>=6.5
+sounddevice>=0.4.6
+numpy>=1.24
