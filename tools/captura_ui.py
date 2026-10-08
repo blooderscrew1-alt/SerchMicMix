@@ -1,4 +1,4 @@
-"""Herramienta de desarrollo: renderiza la ventana a un PNG.
+﻿"""Herramienta de desarrollo: renderiza la ventana a un PNG.
 
 Sirve para revisar el aspecto de la interfaz sin depender de una pantalla.
 
@@ -33,8 +33,8 @@ from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtGui import QFont, QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from audiomix import theme  # noqa: E402
-from audiomix.main_window import MainWindow, make_logo  # noqa: E402
+from serchmicmix import theme  # noqa: E402
+from serchmicmix.main_window import MainWindow, make_logo  # noqa: E402
 
 
 def main() -> int:

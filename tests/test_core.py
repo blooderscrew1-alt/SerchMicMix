@@ -1,4 +1,4 @@
-"""Pruebas basicas de AudioMix.
+﻿"""Pruebas basicas de serchmicmix.
 
 Se ejecutan sin interfaz grafica:
 
@@ -18,7 +18,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from audiomix.engine import LinearResampler, RingBuffer  # noqa: E402
+from serchmicmix.engine import LinearResampler, RingBuffer  # noqa: E402
 
 FAILURES: list[str] = []
 
@@ -82,7 +82,7 @@ def test_resampler() -> None:
 
 
 def test_devices() -> None:
-    from audiomix import devices as dev_mod
+    from serchmicmix import devices as dev_mod
 
     ins, outs = dev_mod.build_registry()
     check("se detectan dispositivos", len(ins) + len(outs) > 0, f"{len(ins)} entradas / {len(outs)} salidas")
@@ -105,8 +105,8 @@ def test_devices() -> None:
 
 
 def test_engine_live() -> None:
-    from audiomix import devices as dev_mod
-    from audiomix.engine import AudioEngine
+    from serchmicmix import devices as dev_mod
+    from serchmicmix.engine import AudioEngine
 
     ins, outs = dev_mod.build_registry()
     if not ins or not outs:
@@ -152,7 +152,7 @@ def test_engine_live() -> None:
 
 
 def test_config_roundtrip() -> None:
-    from audiomix.config import Config, config_path
+    from serchmicmix.config import Config, config_path
 
     path = config_path()
     writable = True
@@ -195,7 +195,7 @@ def test_config_roundtrip() -> None:
 
 
 def test_vbcable_url() -> None:
-    from audiomix import vbcable
+    from serchmicmix import vbcable
 
     check("arquitectura reconocida", vbcable.architecture() in ("AMD64", "ARM64", "X86"), vbcable.architecture())
     check("build de Windows leido", vbcable.windows_build() > 0, str(vbcable.windows_build()))
@@ -208,7 +208,7 @@ def test_vbcable_url() -> None:
 
 def test_vbcable_names() -> None:
     """La deteccion del cable no debe depender del idioma ni del nombre exacto."""
-    from audiomix import devices as dev_mod
+    from serchmicmix import devices as dev_mod
 
     renders = [
         "CABLE Input (VB-Audio Virtual Cable)",
@@ -272,8 +272,8 @@ def test_priority_failover() -> None:
     """
     import time
 
-    from audiomix import devices as dev_mod
-    from audiomix.engine import AudioEngine
+    from serchmicmix import devices as dev_mod
+    from serchmicmix.engine import AudioEngine
 
     ins, outs = dev_mod.build_registry()
     if len(outs) < 2:
@@ -345,7 +345,7 @@ def _wait_for(predicate, timeout: float = 8.0, step: float = 0.15) -> bool:
 
 if __name__ == "__main__":
     print("=" * 66)
-    print(" AudioMix - pruebas del nucleo")
+    print(" Serch MicMix - pruebas del nucleo")
     print("=" * 66)
     for fn in (test_ring_buffer, test_resampler, test_devices, test_config_roundtrip,
                test_vbcable_url, test_vbcable_names, test_engine_live, test_priority_failover):

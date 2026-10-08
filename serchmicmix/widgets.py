@@ -1,4 +1,4 @@
-"""Widgets personalizados de AudioMix: switch, vumetro y tarjetas de dispositivo."""
+﻿"""Widgets personalizados de Serch MicMix: switch, vumetro y tarjetas de dispositivo."""
 
 from __future__ import annotations
 

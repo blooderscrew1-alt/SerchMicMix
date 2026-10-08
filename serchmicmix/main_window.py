@@ -1,4 +1,4 @@
-"""Ventana principal de AudioMix."""
+﻿"""Ventana principal de serchmicmix."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from . import devices as dev_mod
+from . import APP_TITLE, devices as dev_mod
 from . import icons, theme, vbcable
 from .config import Config, config_dir
 from .engine import AudioEngine
@@ -89,7 +89,7 @@ class MainWindow(QWidget):
 
         self.setObjectName("Root")
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setWindowTitle("AudioMix — Mezclador de audio")
+        self.setWindowTitle("Serch MicMix — Mezclador de audio")
         self.setWindowIcon(QIcon(make_logo(128)))
         self.resize(
             int(self.config.get("window", "w", default=1180)),
@@ -155,7 +155,7 @@ class MainWindow(QWidget):
 
         titles = QVBoxLayout()
         titles.setSpacing(0)
-        t = QLabel("AudioMix")
+        t = QLabel(APP_TITLE)
         t.setObjectName("AppTitle")
         s = QLabel("Mezclador de micrófonos y salidas")
         s.setObjectName("Micro")
@@ -181,7 +181,7 @@ class MainWindow(QWidget):
         self.help_btn = QPushButton("?")
         self.help_btn.setObjectName("Ghost")
         self.help_btn.setFixedWidth(36)
-        self.help_btn.setToolTip("Cómo se usa AudioMix")
+        self.help_btn.setToolTip("Cómo se usa Serch MicMix")
         self.help_btn.clicked.connect(self._show_help)
         lay.addWidget(self.help_btn)
 
@@ -220,7 +220,7 @@ class MainWindow(QWidget):
         menu.addAction(act_folder)
 
         menu.addSeparator()
-        act_about = QAction("Acerca de AudioMix", self)
+        act_about = QAction("Acerca de Serch MicMix", self)
         act_about.triggered.connect(self._about)
         menu.addAction(act_about)
         return menu
@@ -490,7 +490,7 @@ class MainWindow(QWidget):
             except Exception as exc:
                 self._scan_result = ("err", f"{type(exc).__name__}: {exc}", None)
 
-        threading.Thread(target=work, name="AudioMix-Scan", daemon=True).start()
+        threading.Thread(target=work, name="SerchMicMix-Scan", daemon=True).start()
 
     def _consume_scan(self) -> None:
         result, self._scan_result = self._scan_result, None
@@ -801,7 +801,7 @@ class MainWindow(QWidget):
             except Exception:
                 self._watch_result = ()
 
-        threading.Thread(target=work, name="AudioMix-Watch", daemon=True).start()
+        threading.Thread(target=work, name="SerchMicMix-Watch", daemon=True).start()
 
     def _consume_watch(self) -> None:
         if self._watch_result is None:
@@ -881,7 +881,7 @@ class MainWindow(QWidget):
 
     def _make_help_dialog(self) -> QDialog:
         dlg = QDialog(self)
-        dlg.setWindowTitle("Cómo se usa AudioMix")
+        dlg.setWindowTitle("Cómo se usa Serch MicMix")
         dlg.resize(640, 560)
         lay = QVBoxLayout(dlg)
         browser = QTextBrowser()
@@ -892,7 +892,7 @@ class MainWindow(QWidget):
         )
         browser.setHtml(
             f"""
-            <h2 style="color:{theme.ACCENT_2}">AudioMix en 30 segundos</h2>
+            <h2 style="color:{theme.ACCENT_2}">Serch MicMix en 30 segundos</h2>
             <p><b>1. Enciende un micrófono.</b> Toca su tarjeta en la columna
             izquierda. Se ilumina y verás el nivel de sonido moverse. Tócala otra
             vez para apagarlo.</p>
@@ -924,7 +924,7 @@ class MainWindow(QWidget):
               <li>Solo suena <b>una</b> salida: la <b>primera de la lista</b> que esté
               disponible.</li>
               <li>Si la principal se apaga, se queda sin batería o se desconecta,
-              AudioMix <b>pasa sola a la siguiente</b> de la lista.</li>
+              Serch MicMix <b>pasa sola a la siguiente</b> de la lista.</li>
               <li>Cuando la principal vuelve, <b>recupera el mando</b> ella sola.</li>
               <li>Con las flechas <b>↑ ↓</b> cambias el orden: la de más arriba es
               siempre la principal. Con <b>×</b> la quitas de la lista.</li>
@@ -965,13 +965,13 @@ class MainWindow(QWidget):
     def _about(self) -> None:
         QMessageBox.about(
             self,
-            "Acerca de AudioMix",
-            "<b>AudioMix</b> — mezclador de audio sencillo para Windows.<br><br>"
+            "Acerca de Serch MicMix",
+            "<b>Serch MicMix</b> — mezclador de audio sencillo para Windows.<br><br>"
             "Detecta automáticamente cualquier tarjeta de sonido, permite encender "
             "y apagar micrófonos con un toque y repartir el audio entre varias "
             "salidas a la vez.<br><br>"
             "VB-Cable es un producto gratuito de VB-Audio (vb-audio.com) que "
-            "AudioMix puede descargar e instalar por ti.",
+            "Serch MicMix puede descargar e instalar por ti.",
         )
 
     def _open_folder(self, path) -> None:

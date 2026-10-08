@@ -1,4 +1,4 @@
-"""Dialogo de descarga e instalacion de VB-Cable."""
+﻿"""Dialogo de descarga e instalacion de VB-Cable."""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ class InstallDialog(QDialog):
         root.addWidget(title)
 
         subtitle = QLabel(
-            "AudioMix descargara VB-Cable desde la web oficial de VB-Audio y lo "
+            "Serch MicMix descargara VB-Cable desde la web oficial de VB-Audio y lo "
             "instalara en este equipo. Es un controlador gratuito de VB-Audio; "
             "Windows pedira permiso de administrador."
         )
@@ -198,7 +198,7 @@ class InstallDialog(QDialog):
                 "La instalacion automatica no ha terminado de registrar el cable.\n\n"
                 "Pulsa 'Instalador oficial': se abrira la ventana de VB-Audio y solo "
                 "tienes que pulsar el boton 'Install Driver'. Despues cierra esta "
-                "ventana y usa 'Volver a detectar' en AudioMix.\n\n"
+                "ventana y usa 'Volver a detectar' en serchmicmix.\n\n"
                 f"Detalle: {detail}"
             )
 

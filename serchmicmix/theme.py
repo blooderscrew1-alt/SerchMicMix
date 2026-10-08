@@ -1,4 +1,4 @@
-"""Paleta y hoja de estilo de AudioMix (tema oscuro moderno)."""
+﻿"""Paleta y hoja de estilo de Serch MicMix (tema oscuro moderno)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Punto de entrada de AudioMix.
+﻿"""Punto de entrada de serchmicmix.
 
 Uso:
     python main.py            (o run.bat)
@@ -30,9 +30,9 @@ VC_REDIST_URL = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
 
 
 def _prepare_logging():
-    """Deja un registro de errores en %APPDATA%\\AudioMix\\error.log."""
+    """Deja un registro de errores en %APPDATA%\\SerchMicMix\\error.log."""
     try:
-        from audiomix.config import log_path
+        from serchmicmix.config import log_path
 
         path = log_path()
         handle = open(path, "a", encoding="utf-8")
@@ -60,10 +60,10 @@ def _install_excepthook(log_handle):
         texto = "".join(traceback.format_exception(exc_type, exc, tb))
         _guardar(log_handle, texto)
         _avisar(
-            "AudioMix — error inesperado",
+            "Serch MicMix — error inesperado",
             "Ha ocurrido un error inesperado.\n\n"
             f"{exc_type.__name__}: {exc}\n\n"
-            "El detalle se guardó en la carpeta de configuración de AudioMix.\n"
+            "El detalle se guardó en la carpeta de configuración de serchmicmix.\n"
             "Puedes verla con «⋮ → Abrir carpeta de configuración».",
         )
 
@@ -109,7 +109,7 @@ def _comprobar_dependencias() -> list[tuple[str, str, str]]:
 
 
 def _mensaje_dependencias(problemas: list[tuple[str, str, str]]) -> str:
-    lineas = ["AudioMix no puede arrancar porque falta un componente de Python.", ""]
+    lineas = ["Serch MicMix no puede arrancar porque falta un componente de Python.", ""]
     for modulo, para, error in problemas:
         lineas.append(f"  · {modulo}  ({para})")
         lineas.append(f"      {error}")
@@ -149,14 +149,14 @@ def main() -> int:
         _guardar(log_handle, "=== Dependencias que fallan ===\n")
         for modulo, _para, error in problemas:
             _guardar(log_handle, f"{modulo}: {error}\n")
-        _avisar("AudioMix — falta un componente", texto)
+        _avisar("Serch MicMix — falta un componente", texto)
         return 3
 
     from PySide6.QtCore import Qt  # noqa: F401
     from PySide6.QtGui import QFont, QIcon
     from PySide6.QtWidgets import QApplication
 
-    from audiomix import APP_NAME, APP_VERSION, theme
+    from serchmicmix import APP_NAME, APP_VERSION, theme
 
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
@@ -170,7 +170,7 @@ def main() -> int:
     app.setFont(fuente)
     app.setStyleSheet(theme.qss())
 
-    from audiomix.main_window import MainWindow, make_logo
+    from serchmicmix.main_window import MainWindow, make_logo
 
     ventana = MainWindow()
     ventana.setWindowIcon(QIcon(make_logo(128)))

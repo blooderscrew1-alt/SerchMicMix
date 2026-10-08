@@ -1,6 +1,6 @@
 """Persistencia de la configuracion del usuario.
 
-Todo se guarda en %APPDATA%\\AudioMix\\config.json y es tolerante a fallos:
+Todo se guarda en %APPDATA%\\SerchMicMix\\config.json y es tolerante a fallos:
 si el archivo esta corrupto se ignora y se empieza de cero. Las entradas de
 dispositivos que ya no existan simplemente se ignoran al arrancar, de modo que
 una misma configuracion sirve en cualquier PC.
@@ -10,12 +10,17 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import tempfile
 import threading
 from pathlib import Path
 from typing import Any
 
-APP_NAME = "AudioMix"
+APP_NAME = "SerchMicMix"
+
+#: Nombre que usaba la aplicacion antes de llamarse Serch MicMix. Si existe su
+#: carpeta, se reaprovecha la configuracion para no perder los ajustes.
+APP_NAME_ANTIGUO = "AudioMix"
 
 
 def config_dir() -> Path:
@@ -24,10 +29,27 @@ def config_dir() -> Path:
     path = Path(base) / APP_NAME
     try:
         path.mkdir(parents=True, exist_ok=True)
+        _migrar_configuracion_antigua(path)
     except OSError:
         path = Path(tempfile.gettempdir()) / APP_NAME
         path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def _migrar_configuracion_antigua(nueva: Path) -> None:
+    """Copia la configuracion de la version anterior si aun no hay ninguna."""
+    antigua = nueva.parent / APP_NAME_ANTIGUO
+    try:
+        if not antigua.is_dir():
+            return
+        for nombre in ("config.json",):
+            origen = antigua / nombre
+            destino = nueva / nombre
+            if origen.is_file() and not destino.exists():
+                shutil.copy2(origen, destino)
+    except Exception:
+        # Si la migracion falla no pasa nada: se empieza con valores por defecto.
+        pass
 
 
 def config_path() -> Path:

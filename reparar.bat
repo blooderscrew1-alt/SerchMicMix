@@ -1,6 +1,6 @@
-@echo off
+﻿@echo off
 rem ============================================================
-rem  AudioMix - reparar
+rem  Serch MicMix - reparar
 rem
 rem  Se usa cuando la aplicacion no arranca por un problema con
 rem  PySide6, sounddevice o numpy. El caso tipico es:
@@ -15,7 +15,7 @@ rem  Todo el detalle queda en reparar.txt
 rem ============================================================
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
-title AudioMix - reparar
+title Serch MicMix - reparar
 
 call "%~dp0herramientas\_buscar_python.bat"
 

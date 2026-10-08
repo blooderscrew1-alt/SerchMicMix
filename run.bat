@@ -1,6 +1,6 @@
-@echo off
+﻿@echo off
 rem ============================================================
-rem  AudioMix - lanzador
+rem  Serch MicMix - lanzador
 rem  Busca un Python que funcione, se asegura de que estan las
 rem  dependencias y abre la aplicacion.
 rem
@@ -8,7 +8,7 @@ rem  Si algo falla, usa diagnostico.bat o reparar.bat.
 rem ============================================================
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
-title AudioMix
+title Serch MicMix
 
 rem --- 1. Localizar un Python valido -------------------------------------
 call "%~dp0herramientas\_buscar_python.bat"
@@ -64,7 +64,7 @@ set "PYW="
 for %%P in ("%PY%") do if exist "%%~dpPpythonw.exe" set "PYW=%%~dpPpythonw.exe"
 
 if defined PYW (
-    start "AudioMix" "!PYW!" "%~dp0main.py" %* <nul >nul 2>nul
+    start "SerchMicMix" "!PYW!" "%~dp0main.py" %* <nul >nul 2>nul
 ) else (
     "%PY%" "%~dp0main.py" %*
 )

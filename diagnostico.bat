@@ -1,13 +1,13 @@
-@echo off
+﻿@echo off
 rem ============================================================
-rem  AudioMix - diagnostico
+rem  Serch MicMix - diagnostico
 rem  Genera diagnostico.txt con todo lo necesario para saber por
 rem  que la aplicacion no arranca.
 rem  El trabajo pesado lo hace herramientas\salud.py
 rem ============================================================
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
-title AudioMix - diagnostico
+title Serch MicMix - diagnostico
 
 call "%~dp0herramientas\_buscar_python.bat"
 

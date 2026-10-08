@@ -1,4 +1,4 @@
-"""Integracion con el controlador VB-Cable (VB-Audio).
+﻿"""Integracion con el controlador VB-Cable (VB-Audio).
 
 Responsabilidades:
 
@@ -10,7 +10,7 @@ Responsabilidades:
    una instalacion silenciosa con ``pnputil`` y, si no basta, se lanza el
    instalador oficial de VB-Audio.
 
-Nada de esto es obligatorio para usar AudioMix: sin VB-Cable la aplicacion
+Nada de esto es obligatorio para usar Serch MicMix: sin VB-Cable la aplicacion
 sigue funcionando como mezclador normal entre microfonos y altavoces.
 """
 
@@ -204,7 +204,7 @@ def install_dir() -> Path:
     """
     base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or ""
     if base:
-        path = Path(base) / "AudioMix" / "vbcable"
+        path = Path(base) / "SerchMicMix" / "vbcable"
         try:
             path.mkdir(parents=True, exist_ok=True)
             return path
@@ -360,7 +360,7 @@ def launch_official_setup(folder: Path, progress=None) -> dict:
         "message": (
             "Se abrio el instalador de VB-Audio.\n\n"
             "Pulsa el boton 'Install Driver' en esa ventana y espera a que termine.\n"
-            "Despues vuelve a AudioMix y pulsa 'Volver a detectar'."
+            "Despues vuelve a Serch MicMix y pulsa 'Volver a detectar'."
         ),
     }
 

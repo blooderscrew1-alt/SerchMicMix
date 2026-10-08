@@ -1,4 +1,4 @@
-# 🎛️ AudioMix
+﻿# 🎛️ Serch MicMix
 
 **Mezclador de audio sencillo y moderno para Windows**, con integración automática
 de **VB-Cable** (VB-Audio Virtual Cable).
@@ -7,7 +7,7 @@ Enciende y apaga micrófonos con un solo toque, elige por dónde suena todo y
 manda tu voz a Discord, OBS, Zoom o cualquier juego… sin pelear con menús
 complicados.
 
-![Interfaz de AudioMix](tools/captura.png)
+![Interfaz de Serch MicMix](tools/captura.png)
 
 ---
 
@@ -17,11 +17,11 @@ complicados.
 |---|---|
 | 🎤 **Micrófonos y entradas** | Detecta **todas** las entradas del PC. Un clic en la tarjeta la **enciende**, otro clic la **apaga**. |
 | 🔊 **Salidas / bocinas** | Elige una o **varias salidas a la vez**. Cada una con su volumen, su vúmetro y su botón de encendido. |
-| 🎧 **Prioridad automática** | Ordena tus salidas y deja que AudioMix elija: suena la primera disponible y **cambia sola** a la siguiente cuando la principal se apaga. Pensado para **bocinas Bluetooth**. [Ver más](#-prioridad-automática-de-salidas-bluetooth) |
+| 🎧 **Prioridad automática** | Ordena tus salidas y deja que Serch MicMix elija: suena la primera disponible y **cambia sola** a la siguiente cuando la principal se apaga. Pensado para **bocinas Bluetooth**. [Ver más](#-prioridad-automática-de-salidas-bluetooth) |
 | 🎚️ **Mezcla** | Volumen independiente por dispositivo + una **mezcla maestra** general. Ondas suavizadas: nunca hay clics al encender o apagar. |
 | 🎵 **Música del sistema** | Manda lo que suena en el PC al cable virtual y de ahí a donde quieras. |
 | 🔌 **Detección en caliente** | Enciende una bocina Bluetooth y aparece sola en la lista, **sin cortar el audio** que esté sonando. |
-| 🎧 **VB-Cable en un clic** | Si no está instalado, AudioMix lo **busca, lo descarga de la web oficial y lo instala** por ti. |
+| 🎧 **VB-Cable en un clic** | Si no está instalado, Serch MicMix lo **busca, lo descarga de la web oficial y lo instala** por ti. |
 | ⚡ **Acciones rápidas** | «Micrófono al PC», «Escuchar mi micrófono», «Música a las bocinas», «Mezclar todo» y «Detener todo». |
 | 🔇 **Silenciar todo** | Corta todo el sonido sin perder la configuración de qué estaba encendido. |
 | 💾 **Recuerda tus ajustes** | Al cerrar guarda qué dispositivos estaban activos, sus volúmenes, el orden de prioridad y el tamaño de la ventana. |
@@ -30,7 +30,7 @@ complicados.
 
 ## 🖥️ Pensado para **cualquier PC**
 
-AudioMix no tiene nada escrito a mano sobre tarjetas ni altavoces concretos:
+Serch MicMix no tiene nada escrito a mano sobre tarjetas ni altavoces concretos:
 
 * **Detecta el hardware al arrancar** y se adapta a lo que haya: integrada,
   USB, HDMI, Bluetooth, auriculares, tarjetas profesionales, etc.
@@ -85,7 +85,7 @@ dé un error que en realidad no tiene nada que ver con Internet.
 
 ### Si sale un error de numpy con «DLL load failed»
 
-Es el fallo más típico en un PC recién preparado, y **no es de AudioMix**:
+Es el fallo más típico en un PC recién preparado, y **no es de Serch MicMix**:
 
 ```
 ImportError: DLL load failed while importing _multiarray_umath:
@@ -135,7 +135,7 @@ Si lo prefieres a mano:
    ```
 3. Ejecuta `run.bat`.
 
-> La tarjeta gráfica no influye: AudioMix no usa la GPU. Lo que decide es el
+> La tarjeta gráfica no influye: Serch MicMix no usa la GPU. Lo que decide es el
 > **procesador**. Una GTX 1080 va perfecta; el que se queda corto es el Phenom.
 
 ### 2. Encender un micrófono
@@ -174,7 +174,7 @@ ahí: puedes mandar la música a los altavoces y tu voz solo a los auriculares.
 
 Es la función pensada para quien usa **bocinas Bluetooth**: en vez de andar
 cambiando la salida a mano cada vez que las enciende o las apaga, le dices a
-AudioMix **en qué orden** quieres que suene todo.
+Serch MicMix **en qué orden** quieres que suene todo.
 
 ![Lista de prioridad](tools/captura_prioridad.png)
 
@@ -191,7 +191,7 @@ salidas. Entonces la columna derecha cambia a la **lista ordenada**:
 
 * Solo suena **una** salida: la primera de la lista que esté realmente
   disponible. Las demás quedan *En espera*.
-* Si la principal se apaga, se queda sin batería o se desconecta, AudioMix
+* Si la principal se apaga, se queda sin batería o se desconecta, Serch MicMix
   **conmuta sola** a la siguiente en un par de segundos.
 * Cuando la principal vuelve, **recupera el mando** ella misma.
 * Una bocina apagada **no desaparece de la lista**: se queda en su puesto
@@ -226,29 +226,29 @@ altavoces del monitor. Las vuelves a encender → regresa a las Bluetooth.
 
 ---
 
-## 🎧 VB-Cable: qué es y cómo lo instala AudioMix
+## 🎧 VB-Cable: qué es y cómo lo instala Serch MicMix
 
 **VB-Cable** es un *cable de audio virtual* gratuito de [VB-Audio](https://vb-audio.com/Cable/index.htm).
 Funciona como un cable físico:
 
 ```
   Tu micrófono  ──►  CABLE Input   ═══(cable)═══   CABLE Output  ──►  Discord / OBS
-   (AudioMix)        "altavoces"                     "micrófono"
+   (Serch MicMix)        "altavoces"                     "micrófono"
 ```
 
 Un extremo (`CABLE Input`) actúa como **altavoces** y el otro (`CABLE Output`)
 como **micrófono**. Por eso sirve para inyectar en otras aplicaciones audio que
 ellas no podrían capturar por sí solas.
 
-### Cómo lo instala AudioMix
+### Cómo lo instala Serch MicMix
 
 Si al abrir la app no encuentra el cable, verás un **aviso amarillo** en la parte
-superior. Al pulsar **«Instalar VB-Cable»**, AudioMix:
+superior. Al pulsar **«Instalar VB-Cable»**, Serch MicMix:
 
 1. **Busca la última versión** en `vb-audio.com` (y si la página cambia, usa
    direcciones de respaldo).
 2. **Descarga** el paquete oficial (por ejemplo `VBCABLE_Driver_Pack45.zip`, ~1,3 MB).
-3. **Lo descomprime** en `%LOCALAPPDATA%\AudioMix\vbcable`.
+3. **Lo descomprime** en `%LOCALAPPDATA%\SerchMicMix\vbcable`.
 4. **Elige el controlador correcto** para tu Windows y tu arquitectura
    (`vbMmeCable64_win10.inf` en Windows 10/11 x64, la variante ARM64 o las
    versiones antiguas para Windows 7/8).
@@ -259,10 +259,10 @@ superior. Al pulsar **«Instalar VB-Cable»**, AudioMix:
 
 > **Nota importante:** instalar un controlador **siempre** requiere tu
 > consentimiento — Windows mostrará un aviso de administrador y, en el peor
-> caso, tendrás que pulsar un botón en la ventana de VB-Audio. AudioMix no
+> caso, tendrás que pulsar un botón en la ventana de VB-Audio. Serch MicMix no
 > instala nada a tus espaldas.
 >
-> El controlador es gratuito para uso personal. AudioMix solo lo descarga desde
+> El controlador es gratuito para uso personal. Serch MicMix solo lo descarga desde
 > la web oficial de su autor. Más información y licencia:
 > <https://vb-audio.com/Cable/index.htm>
 
@@ -270,7 +270,7 @@ superior. Al pulsar **«Instalar VB-Cable»**, AudioMix:
 
 Si lo prefieres, descárgalo e instálalo tú desde
 <https://vb-audio.com/Cable/index.htm> y después pulsa **🔄 Actualizar** en
-AudioMix. El aviso amarillo desaparecerá solo.
+serchmicmix. El aviso amarillo desaparecerá solo.
 
 ---
 
@@ -283,15 +283,15 @@ AudioMix. El aviso amarillo desaparecerá solo.
 | **No aparece un dispositivo que acabo de enchufar** | Pulsa **🔄 Actualizar**. Si sigue sin salir: **⋮ → Reiniciar motor y recargar dispositivos**. |
 | **Un dispositivo no aparece nunca** | Abre **⋮ → Mostrar todos los controladores**. A veces el mismo altavoz aparece varias veces (WASAPI, DirectSound, MME); el modo normal enseña solo el mejor. |
 | **«Algunos dispositivos no se pudieron abrir»** | Casi siempre significa que otra aplicación lo tiene en exclusiva. Cierra esa app y pulsa Actualizar. |
-| **El sonido se entrecorta** | Usa WASAPI (es lo que AudioMix elige por defecto), evita «mejoras de audio» de terceros y no pongas 6 dispositivos a la vez. |
+| **El sonido se entrecorta** | Usa WASAPI (es lo que Serch MicMix elige por defecto), evita «mejoras de audio» de terceros y no pongas 6 dispositivos a la vez. |
 | **Se oye un pitido o acople** | Estás enviando el micrófono a los mismos altavoces que lo reproducen. Apaga esa salida o baja la mezcla. |
 | **La prioridad no cambia a la bocina Bluetooth** | Comprueba que esté **en la lista** (si la quitaste con **×** no vuelve sola: añádela con *Añadir salida*). Y que aparezca como *Conectada*, no como *No disponible*. |
 | **La prioridad salta entre dos salidas sin parar** | Alguna está fallando al abrirse de forma intermitente. Quítala de la lista con **×** o revisa el dispositivo en Windows. |
 | **No oigo nada** | Comprueba que haya al menos una **salida** encendida. Si usas prioridad automática, mira el aviso de abajo: si dice que ninguna está disponible, enciende una bocina o añade otra salida. |
 | **La instalación de VB-Cable se queda parada** | Es el aviso de administrador de Windows esperando detrás de la ventana, o el instalador de VB-Audio pidiendo que pulses «Install Driver». Busca esa ventana. |
-| **Quiero desinstalar VB-Cable** | Panel de control → Programas → *VB-Audio Virtual Cable* → Desinstalar. O ejecuta `%LOCALAPPDATA%\AudioMix\vbcable\VBCABLE_Setup_x64.exe` y pulsa *Remove Driver*. |
+| **Quiero desinstalar VB-Cable** | Panel de control → Programas → *VB-Audio Virtual Cable* → Desinstalar. O ejecuta `%LOCALAPPDATA%\SerchMicMix\vbcable\VBCABLE_Setup_x64.exe` y pulsa *Remove Driver*. |
 
-Los errores inesperados se guardan en `%APPDATA%\AudioMix\error.log`
+Los errores inesperados se guardan en `%APPDATA%\SerchMicMix\error.log`
 (accesible desde **⋮ → Abrir carpeta de configuración**).
 
 ---
@@ -299,7 +299,7 @@ Los errores inesperados se guardan en `%APPDATA%\AudioMix\error.log`
 ## 🗂️ Estructura del proyecto
 
 ```
-AudioMix/
+serchmicmix/
 ├── run.bat                  Lanzador: busca el mejor Python y abre la app
 ├── reparar.bat              Repara dependencias que no cargan
 ├── diagnostico.bat          Genera diagnostico.txt si algo no arranca
@@ -308,7 +308,7 @@ AudioMix/
 ├── herramientas/
 │   ├── _buscar_python.bat   Localiza un Python válido (lo usan los tres .bat)
 │   └── salud.py             Diagnóstico y reparación (informe + reinstalación)
-├── audiomix/
+├── serchmicmix/
 │   ├── engine.py            Motor de mezcla en tiempo real (anillos, remuestreo, ganancias)
 │   ├── devices.py           Detección y clasificación de dispositivos de audio
 │   ├── vbcable.py           Detección, descarga e instalación de VB-Cable
@@ -317,7 +317,7 @@ AudioMix/
 │   ├── icons.py             Iconos vectoriales dibujados con QPainter
 │   ├── theme.py             Paleta y hoja de estilos
 │   ├── install_dialog.py    Asistente de instalación paso a paso
-│   └── config.py            Guardado de ajustes (%APPDATA%\AudioMix\config.json)
+│   └── config.py            Guardado de ajustes (%APPDATA%\SerchMicMix\config.json)
 ├── tests/
 │   └── test_core.py         Pruebas del núcleo (anillos, remuestreo, motor, prioridad)
 └── tools/
@@ -380,15 +380,15 @@ mezcla puesta a cero, así que **no se oye nada**.
 * Conexión a Internet **solo la primera vez** (para PySide6, sounddevice, numpy
   y, si lo quieres, el controlador de VB-Cable).
 
-No hace falta ser administrador para usar AudioMix. Solo se piden permisos
+No hace falta ser administrador para usar serchmicmix. Solo se piden permisos
 cuando decides instalar el controlador de VB-Cable.
 
 ---
 
 ## 📜 Aviso legal
 
-AudioMix es una utilidad independiente y **no está afiliada a VB-Audio**.
-*VB-Cable* y *VoiceMeeter* son marcas de Vincent Burel / VB-Audio. AudioMix se
+Serch MicMix es una utilidad independiente y **no está afiliada a VB-Audio**.
+*VB-Cable* y *VoiceMeeter* son marcas de Vincent Burel / VB-Audio. Serch MicMix se
 limita a descargar el paquete oficial desde su web cuando tú se lo pides.
 
 ---
@@ -396,7 +396,7 @@ limita a descargar el paquete oficial desde su web cuando tú se lo pides.
 ## ⚖️ Licencia
 
 ```
-AudioMix — mezclador de audio para Windows
+Serch MicMix — mezclador de audio para Windows
 Copyright (C) 2026 Serch
 
 Este programa es software libre: puedes redistribuirlo y/o modificarlo

@@ -1,11 +1,11 @@
-"""Comprobacion de salud de AudioMix: diagnostico y reparacion.
+﻿"""Comprobacion de salud de Serch MicMix: diagnostico y reparacion.
 
 Se usa desde ``diagnostico.bat`` y ``reparar.bat``, pero tambien a mano:
 
     python herramientas\\salud.py            (informe y recomendaciones)
     python herramientas\\salud.py --reparar  (reinstala lo que falle)
 
-Existe porque el error tipico en un PC recien preparado no es de AudioMix:
+Existe porque el error tipico en un PC recien preparado no es de Serch MicMix:
 numpy no consigue cargar sus DLL y el mensaje de Python ("DLL load failed
 while importing _multiarray_umath") no dice nada util al usuario.
 """
@@ -262,7 +262,7 @@ def info_numpy() -> list[str]:
 def informe() -> tuple[bool, list[str]]:
     """Escribe el informe completo. Devuelve (todo_ok, modulos_que_fallan)."""
     log(LINEA)
-    log(" AudioMix - informe de salud")
+    log(" Serch MicMix - informe de salud")
     log(LINEA)
     log()
     log("--- Sistema ---")
@@ -347,10 +347,10 @@ def informe() -> tuple[bool, list[str]]:
         log("  automaticamente. Vuelve a instalar Python desde python.org marcando")
         log("  las casillas 'pip' y 'Add python.exe to PATH'.")
     if not es_64_bits():
-        log("  ATENCION: este Python es de 32 bits. AudioMix necesita uno de 64 bits.")
+        log("  ATENCION: este Python es de 32 bits. Serch MicMix necesita uno de 64 bits.")
 
     if not fallan:
-        log("  Todo correcto. Ejecuta run.bat para abrir AudioMix.")
+        log("  Todo correcto. Ejecuta run.bat para abrir serchmicmix.")
     elif sse42 is False and "numpy" in fallan:
         log("  La causa NO es Internet ni el runtime de Visual C++: es el")
         log("  procesador. numpy 2.x necesita SSE4.2 y este no lo tiene.")
@@ -537,7 +537,7 @@ def instalar_python_compatible() -> bool:
     if todo_ok:
         log()
         log(LINEA)
-        log(" LISTO. Ya puedes abrir AudioMix con run.bat")
+        log(" LISTO. Ya puedes abrir Serch MicMix con run.bat")
         log(f" (usara automaticamente {python})")
         log(LINEA)
     return todo_ok
@@ -625,7 +625,7 @@ def reparar() -> int:
     if not siguen:
         log()
         log(LINEA)
-        log(" RESUELTO. Ya puedes abrir AudioMix con run.bat")
+        log(" RESUELTO. Ya puedes abrir Serch MicMix con run.bat")
         log(LINEA)
         return 0
 
@@ -665,7 +665,7 @@ def reparar() -> int:
 
 # --------------------------------------------------------------------------
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Diagnostico y reparacion de AudioMix")
+    parser = argparse.ArgumentParser(description="Diagnostico y reparacion de Serch MicMix")
     parser.add_argument("--reparar", action="store_true", help="reinstala lo que falle")
     parser.add_argument("--salida", default="", help="guardar el informe en este archivo")
     args = parser.parse_args()

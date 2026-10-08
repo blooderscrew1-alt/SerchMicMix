@@ -1,4 +1,4 @@
-"""Prueba de humo de la interfaz: recorre todos los caminos interactivos.
+﻿"""Prueba de humo de la interfaz: recorre todos los caminos interactivos.
 
 No necesita pantalla (usa el plugin "offscreen") y no instala nada.
 
@@ -20,9 +20,9 @@ from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QFont  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from audiomix import theme  # noqa: E402
-from audiomix.install_dialog import InstallDialog  # noqa: E402
-from audiomix.main_window import MainWindow  # noqa: E402
+from serchmicmix import theme  # noqa: E402
+from serchmicmix.install_dialog import InstallDialog  # noqa: E402
+from serchmicmix.main_window import MainWindow  # noqa: E402
 
 PROBLEMS: list[str] = []
 

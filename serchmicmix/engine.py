@@ -1,4 +1,4 @@
-"""Motor de mezcla y ruteo de audio en tiempo real.
+﻿"""Motor de mezcla y ruteo de audio en tiempo real.
 
 Arquitectura
 ------------
@@ -248,7 +248,7 @@ class AudioEngine:
         }
         self._cb_ms = 0.0
 
-        self._thread = threading.Thread(target=self._loop, name="AudioMix-Reconciler", daemon=True)
+        self._thread = threading.Thread(target=self._loop, name="SerchMicMix-Reconciler", daemon=True)
         self._thread.start()
 
     # ------------------------------------------------------------- API GUI
