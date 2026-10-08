@@ -1,4 +1,4 @@
-﻿"""Pruebas basicas de serchmicmix.
+"""Pruebas basicas de serchmicmix.
 
 Se ejecutan sin interfaz grafica:
 
@@ -105,6 +105,13 @@ def test_devices() -> None:
 
 
 def test_engine_live() -> None:
+    """Prueba el motor con dispositivos reales.
+
+    Aqui no basta con que el stream se "abra": hay que comprobar que esta
+    ACTIVO y que sus callbacks se ejecutan de verdad. Antes se daba por bueno
+    un stream creado sin arrancar, y la aplicacion se quedaba sin audio y sin
+    vumetros sin que ninguna prueba lo detectara.
+    """
     from serchmicmix import devices as dev_mod
     from serchmicmix.engine import AudioEngine
 
@@ -123,29 +130,49 @@ def test_engine_live() -> None:
     engine.set_input(in_key, enabled=True, muted=False)
     engine.set_output(out_key, enabled=True, muted=False)
 
-    peak = 0.0
-    deadline = time.time() + 4.0
-    while time.time() < deadline:
-        snap = engine.snapshot()
-        stats = snap["stats"]
-        if stats["inputs_open"] and stats["outputs_open"]:
-            peak = max(peak, snap["inputs"][in_key]["level"], snap["outputs"][out_key]["level"])
-            if peak > 0:
-                break
-        time.sleep(0.15)
+    # --- lo importante: los streams deben ARRANCAR, no solo crearse ---
+    entrada_activa = _wait_for(lambda: bool(getattr(engine.inputs[in_key].stream, "active", False)), timeout=10.0)
+    salida_activa = _wait_for(lambda: bool(getattr(engine.outputs[out_key].stream, "active", False)), timeout=10.0)
+
+    check("stream de entrada ACTIVO (arrancado, no solo creado)", entrada_activa,
+          engine.inputs[in_key].error or "el stream no se arranco")
+    check("stream de salida ACTIVO (arrancado, no solo creado)", salida_activa,
+          engine.outputs[out_key].error or "el stream no se arranco")
+
+    time.sleep(1.5)
+
+    tramas = engine.inputs[in_key].ring.written if engine.inputs[in_key].ring else 0
+    check("el callback de entrada captura audio", tramas > 0, f"{tramas} tramas")
+    carga = engine.stats.get("load", 0.0)
+    check("los callbacks de audio se ejecutan", carga > 0.0005, f"carga {carga:.4f} ms/bloque")
+
+    # El nivel que ve la interfaz debe corresponder a lo capturado. Si el
+    # dispositivo elegido no capta nada (habitaciones silenciosas, o un
+    # dispositivo virtual), el vumetro estara a cero de forma legitima.
+    pico_anillo = float(np.max(np.abs(engine.inputs[in_key].ring.buf))) if tramas else 0.0
+    if pico_anillo > 0.0005:
+        nivel_ui = engine.snapshot()["inputs"][in_key]["level"]
+        check("el nivel que ve la interfaz refleja el audio capturado",
+              nivel_ui > 0.0005, f"pico {pico_anillo:.6f}, nivel ui {nivel_ui:.6f}")
+    else:
+        print("[SALTA] el dispositivo no capta sonido ambiente; "
+              "no se puede comprobar el vumetro con esta entrada")
+
+    # No debe estar reabriendo los dispositivos en cada ciclo.
+    ref_in = engine.inputs[in_key].stream
+    ref_out = engine.outputs[out_key].stream
+    time.sleep(3.0)
+    check("los streams se mantienen estables (no se reabren)",
+          engine.inputs[in_key].stream is ref_in and engine.outputs[out_key].stream is ref_out)
 
     snap = engine.snapshot()
-    check("entrada abierta en vivo", snap["inputs"][in_key]["open"],
-          snap["inputs"][in_key]["error"] or f"rate={snap['inputs'][in_key]['rate']}")
-    check("salida abierta en vivo", snap["outputs"][out_key]["open"],
-          snap["outputs"][out_key]["error"] or f"rate={snap['outputs'][out_key]['rate']}")
     check("no hay errores del motor", not snap["stats"]["last_error"], snap["stats"]["last_error"])
     print(f"       frecuencia maestra: {snap['stats']['master_rate']} Hz, "
-          f"carga {snap['stats']['load']:.2f} ms/bloque")
+          f"carga {carga:.3f} ms/bloque, {tramas} tramas capturadas")
 
     engine.set_input(in_key, enabled=False)
     engine.set_output(out_key, enabled=False)
-    time.sleep(0.6)
+    time.sleep(0.8)
     snap = engine.snapshot()
     check("los streams se cierran al apagar", not snap["inputs"][in_key]["open"] and not snap["outputs"][out_key]["open"])
     engine.shutdown()
@@ -263,6 +290,64 @@ def test_vbcable_names() -> None:
     check("VoiceMeeter sirve como cable virtual", eps2["installed"])
 
 
+def test_com_hilo_secundario() -> None:
+    """Un hilo secundario debe poder abrir y ARRANCAR un stream.
+
+    Windows exige COM inicializado en el hilo que hace las llamadas de WASAPI.
+    Sin ``devices.init_com()``, PortAudio falla con un error que no menciona
+    COM por ningun lado ("WdmSyncIoctl: DeviceIoControl GLE = 0x492"), y como
+    el motor abre los streams desde su propio hilo, la aplicacion se quedaba
+    sin audio ni vumetros. Esta prueba lo protege.
+    """
+    import threading
+
+    import sounddevice as sd
+
+    from serchmicmix import devices as dev_mod
+
+    ins, _ = dev_mod.build_registry()
+    if not ins:
+        print("[SALTA] sin dispositivos de entrada para la prueba de COM")
+        return
+
+    dispositivo = ins[0]
+    resultado: dict = {}
+
+    def trabajo() -> None:
+        com_propio = dev_mod.init_com()
+        stream = None
+        try:
+            stream = sd.InputStream(
+                device=dispositivo.index,
+                channels=1,
+                samplerate=int(dispositivo.default_sr) or 48000,
+                dtype="float32",
+                blocksize=0,
+                latency="low",
+                callback=lambda *a: None,
+            )
+            stream.start()
+            resultado["activo"] = bool(stream.active)
+        except Exception as exc:  # noqa: BLE001
+            resultado["error"] = f"{type(exc).__name__}: {str(exc)[:110]}"
+        finally:
+            if stream is not None:
+                try:
+                    stream.stop()
+                    stream.close()
+                except Exception:
+                    pass
+            dev_mod.liberar_com(com_propio)
+
+    hilo = threading.Thread(target=trabajo, name="prueba-com")
+    hilo.start()
+    hilo.join(timeout=20.0)
+
+    check("un hilo secundario puede arrancar un stream (COM por hilo)",
+          resultado.get("activo") is True,
+          resultado.get("error", "el hilo no termino"))
+
+
 def test_priority_failover() -> None:
     """Comprueba que la salida prioritaria conmuta sola cuando la principal cae.
 
@@ -348,7 +433,8 @@ if __name__ == "__main__":
     print(" Serch MicMix - pruebas del nucleo")
     print("=" * 66)
     for fn in (test_ring_buffer, test_resampler, test_devices, test_config_roundtrip,
-               test_vbcable_url, test_vbcable_names, test_engine_live, test_priority_failover):
+               test_vbcable_url, test_vbcable_names, test_com_hilo_secundario,
+               test_engine_live, test_priority_failover):
         print(f"\n--- {fn.__name__} ---")
         try:
             fn()

@@ -1,4 +1,4 @@
-﻿"""Ventana principal de serchmicmix."""
+"""Ventana principal de serchmicmix."""
 
 from __future__ import annotations
 
@@ -482,6 +482,8 @@ class MainWindow(QWidget):
         show_all = bool(self.config.get("show_all_apis", default=False))
 
         def work() -> None:
+            # COM en este hilo antes de tocar PortAudio (ver devices.init_com).
+            com_propio = dev_mod.init_com()
             try:
                 if hard and not engine_busy:
                     dev_mod.refresh_portaudio()
@@ -489,6 +491,8 @@ class MainWindow(QWidget):
                 self._scan_result = ("ok", ins, outs)
             except Exception as exc:
                 self._scan_result = ("err", f"{type(exc).__name__}: {exc}", None)
+            finally:
+                dev_mod.liberar_com(com_propio)
 
         threading.Thread(target=work, name="SerchMicMix-Scan", daemon=True).start()
 
@@ -796,10 +800,13 @@ class MainWindow(QWidget):
         self._watch_busy = True
 
         def work() -> None:
+            com_propio = dev_mod.init_com()
             try:
                 self._watch_result = dev_mod.poll_devices()
             except Exception:
                 self._watch_result = ()
+            finally:
+                dev_mod.liberar_com(com_propio)
 
         threading.Thread(target=work, name="SerchMicMix-Watch", daemon=True).start()
 
@@ -1048,13 +1055,28 @@ class MainWindow(QWidget):
             state = snap["inputs"].get(key)
             if state is None:
                 continue
+            aviso = state["error"]
+            # Si lleva un rato encendido sin captar nada, se avisa: casi
+            # siempre es un micro silenciado, sin permiso, o un dispositivo
+            # virtual (los de Steam, por ejemplo) que no da senal nunca.
+            if (
+                not aviso
+                and state["enabled"]
+                and state["open"]
+                and not state["has_signal"]
+                and state["silent_for"] > 6.0
+            ):
+                aviso = (
+                    "Sin señal — sube el volumen del micrófono en Windows, "
+                    "revisa el permiso de privacidad o prueba otro dispositivo"
+                )
             card.set_state(
                 state["enabled"],
                 state["muted"],
                 state["gain"],
                 solo=state["solo"],
                 level=state["level"],
-                error=state["error"],
+                error=aviso,
             )
         for key, card in self.output_cards.items():
             state = snap["outputs"].get(key)

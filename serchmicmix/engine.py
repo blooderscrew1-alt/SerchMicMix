@@ -1,4 +1,4 @@
-﻿"""Motor de mezcla y ruteo de audio en tiempo real.
+"""Motor de mezcla y ruteo de audio en tiempo real.
 
 Arquitectura
 ------------
@@ -32,6 +32,8 @@ from . import devices as dev_mod
 REF_BLOCK = 480
 # Segundos de historial del anillo
 RING_SECONDS = 0.75
+#: Por debajo de esto se considera silencio (para avisar de "sin senal").
+NIVEL_SENAL = 0.0008
 
 
 # --------------------------------------------------------------------------
@@ -145,6 +147,24 @@ def _ramp_gain(prev: float, target: float, frames: int) -> tuple[np.ndarray | No
     return ramp, target
 
 
+def _descartar_stream(stream) -> None:
+    """Cierra un stream que no llego a usarse.
+
+    Se usa cuando el stream se creo pero no se pudo arrancar, para no dejar
+    el dispositivo ocupado. Nunca propaga errores: el error que importa es el
+    original, no el del cierre.
+    """
+    if stream is None:
+        return
+    try:
+        stream.abort(ignore_errors=True)
+    except Exception:
+        try:
+            stream.close()
+        except Exception:
+            pass
+
+
 # --------------------------------------------------------------------------
 # Slots
 # --------------------------------------------------------------------------
@@ -167,6 +187,10 @@ class InputSlot:
     xruns: int = 0
     next_retry: float = 0.0
     open_attempts: int = 0
+    #: Cuando se abrio el stream y cuando se oyo algo por ultima vez. Sirven
+    #: para avisar en la interfaz de un dispositivo que no da senal.
+    opened_at: float = 0.0
+    last_signal: float = 0.0
 
     @property
     def category(self) -> str:
@@ -426,6 +450,7 @@ class AudioEngine:
     # ------------------------------------------------------------ consulta
     def snapshot(self) -> dict:
         with self._lock:
+            ahora = time.monotonic()
             inputs = {
                 k: {
                     "enabled": s.enabled,
@@ -437,6 +462,13 @@ class AudioEngine:
                     "error": s.error,
                     "rate": s.rate,
                     "open": s.stream is not None,
+                    #: Segundos sin oir nada (solo si el stream esta abierto).
+                    "silent_for": (
+                        ahora - (s.last_signal or s.opened_at)
+                        if s.stream is not None and s.opened_at
+                        else 0.0
+                    ),
+                    "has_signal": bool(s.last_signal),
                 }
                 for k, s in self.inputs.items()
             }
@@ -479,21 +511,27 @@ class AudioEngine:
         self._wake.set()
 
     def _loop(self) -> None:
-        while not self._stop.is_set():
-            try:
-                # Se reconcilia cuando algo cambia y, ademas, al menos una vez
-                # por segundo: asi se detecta que un stream ha muerto (bocina
-                # Bluetooth apagada de golpe) y el modo prioridad puede
-                # reaccionar aunque nadie haya tocado nada.
-                due = (time.monotonic() - self._last_reconcile) > 1.0
-                if self._dirty or due or self.priority_mode:
-                    self._dirty = False
-                    self._last_reconcile = time.monotonic()
-                    self._reconcile()
-            except Exception as exc:  # nunca debe morir el hilo
-                self.stats["last_error"] = f"{type(exc).__name__}: {exc}"
-            self._wake.wait(0.2)
-            self._wake.clear()
+        # COM en este hilo ANTES de tocar PortAudio: sin esto, abrir o
+        # arrancar cualquier stream WASAPI falla desde un hilo secundario.
+        com_propio = dev_mod.init_com()
+        try:
+            while not self._stop.is_set():
+                try:
+                    # Se reconcilia cuando algo cambia y, ademas, al menos una
+                    # vez por segundo: asi se detecta que un stream ha muerto
+                    # (bocina Bluetooth apagada de golpe) y el modo prioridad
+                    # puede reaccionar aunque nadie haya tocado nada.
+                    due = (time.monotonic() - self._last_reconcile) > 1.0
+                    if self._dirty or due or self.priority_mode:
+                        self._dirty = False
+                        self._last_reconcile = time.monotonic()
+                        self._reconcile()
+                except Exception as exc:  # nunca debe morir el hilo
+                    self.stats["last_error"] = f"{type(exc).__name__}: {exc}"
+                self._wake.wait(0.2)
+                self._wake.clear()
+        finally:
+            dev_mod.liberar_com(com_propio)
 
     def _extra_settings(self, device: dev_mod.DeviceInfo):
         if "WASAPI" in device.hostapi:
@@ -643,6 +681,7 @@ class AudioEngine:
         for rate in self._candidate_rates(device, master):
             for channels in ({1, 2} if device.max_in >= 2 else {1}):
                 extra = self._extra_settings(device)
+                stream = None
                 try:
                     stream = sd.InputStream(
                         device=device.index,
@@ -654,8 +693,12 @@ class AudioEngine:
                         extra_settings=extra,
                         callback=self._make_input_callback(slot),
                     )
+                    # IMPORTANTE: sounddevice NO arranca el stream al crearlo.
+                    # Sin esta llamada no hay callbacks: ni audio ni vumetros.
+                    stream.start()
                 except Exception as exc:
                     last_error = f"{type(exc).__name__}: {exc}"
+                    _descartar_stream(stream)
                     continue
                 slot.stream = stream
                 slot.rate = rate
@@ -663,6 +706,8 @@ class AudioEngine:
                 slot.resampler = None if rate == master else LinearResampler(master / float(rate))
                 slot.error = ""
                 slot.open_attempts = 0
+                slot.opened_at = time.monotonic()
+                slot.last_signal = 0.0
                 return
 
         slot.open_attempts += 1
@@ -676,6 +721,7 @@ class AudioEngine:
         for rate in self._candidate_rates(device, master):
             for channels in ({1, 2} if device.max_out >= 2 else {1}):
                 extra = self._extra_settings(device)
+                stream = None
                 try:
                     stream = sd.OutputStream(
                         device=device.index,
@@ -687,8 +733,12 @@ class AudioEngine:
                         extra_settings=extra,
                         callback=self._make_output_callback(slot),
                     )
+                    # IMPORTANTE: sounddevice NO arranca el stream al crearlo.
+                    # Sin esta llamada no se reproduce nada.
+                    stream.start()
                 except Exception as exc:
                     last_error = f"{type(exc).__name__}: {exc}"
+                    _descartar_stream(stream)
                     continue
                 slot.stream = stream
                 slot.rate = rate
@@ -721,6 +771,8 @@ class AudioEngine:
         slot.ring = None
         slot.resampler = None
         slot.rate = 0
+        slot.opened_at = 0.0
+        slot.last_signal = 0.0
 
     def _close_output(self, slot: OutputSlot) -> None:
         stream, slot.stream = slot.stream, None
@@ -755,6 +807,8 @@ class AudioEngine:
                 peak = float(np.max(np.abs(x))) if x.size else 0.0
                 slot.peak = peak
                 slot.level = peak if peak > slot.level else slot.level * 0.82
+                if peak > NIVEL_SENAL:
+                    slot.last_signal = time.monotonic()
                 if slot.resampler is not None and not slot.resampler.passthrough:
                     x = slot.resampler.process(x)
                     if x is None or x.shape[0] == 0:

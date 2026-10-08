@@ -1,4 +1,4 @@
-﻿"""Prueba de humo de la interfaz: recorre todos los caminos interactivos.
+"""Prueba de humo de la interfaz: recorre todos los caminos interactivos.
 
 No necesita pantalla (usa el plugin "offscreen") y no instala nada.
 
@@ -73,11 +73,14 @@ def main() -> int:
 
     def toggle_input():
         window._on_card_toggle(ikey, True)
-        pump(700)
+        # Abrir y arrancar un dispositivo puede tardar: se espera en vez de
+        # confiar en un tiempo fijo (era la causa de fallos intermitentes).
+        abierto = _wait(lambda: window.engine.snapshot()["inputs"][ikey]["open"], 15.0)
         snap = window.engine.snapshot()
         _assert(snap["inputs"][ikey]["enabled"], "la entrada no se activo")
-        _assert(snap["inputs"][ikey]["open"], "el stream de entrada no se abrio: "
-                + str(snap["inputs"][ikey]["error"]))
+        _assert(abierto, "el stream de entrada no se abrio: " + str(snap["inputs"][ikey]["error"]))
+        activo = _wait(lambda: bool(getattr(window.engine.inputs[ikey].stream, "active", False)), 8.0)
+        _assert(activo, "el stream de entrada no se arranco (sin callbacks, sin vumetro)")
         window._on_card_toggle(ikey, False)
         pump(600)
         _assert(not window.engine.snapshot()["inputs"][ikey]["enabled"], "la entrada no se apago")
@@ -86,10 +89,11 @@ def main() -> int:
 
     def toggle_output():
         window._on_card_toggle(okey, True)
-        pump(900)
+        abierto = _wait(lambda: window.engine.snapshot()["outputs"][okey]["open"], 15.0)
         snap = window.engine.snapshot()
-        _assert(snap["outputs"][okey]["open"], "el stream de salida no se abrio: "
-                + str(snap["outputs"][okey]["error"]))
+        _assert(abierto, "el stream de salida no se abrio: " + str(snap["outputs"][okey]["error"]))
+        activo = _wait(lambda: bool(getattr(window.engine.outputs[okey].stream, "active", False)), 8.0)
+        _assert(activo, "el stream de salida no se arranco (no sonaria nada)")
         window._on_card_toggle(okey, False)
         pump(600)
         _assert(not window.engine.snapshot()["outputs"][okey]["enabled"], "la salida no se apago")
@@ -100,6 +104,29 @@ def main() -> int:
         window._on_card_gain(ikey, 0.5), pump(150),
         _assert(abs(window.engine.snapshot()["inputs"][ikey]["gain"] - 0.5) < 1e-6, "ganancia no aplicada"),
         window._on_card_gain(ikey, 1.0), pump(150)))
+
+    def check_vumetro():
+        """El vumetro de una tarjeta debe reflejar el nivel que recibe.
+
+        Sin esto, un fallo en la cadena del nivel (que es justo lo que dejo la
+        aplicacion muda y sin vumetros) pasaria desapercibido.
+        """
+        card = window.input_cards.get(ikey)
+        _assert(card is not None, "no hay tarjeta para la entrada")
+        barra = card.level
+        # set_state debe reenviar el nivel al vumetro de inmediato
+        card.set_state(True, False, 1.0, level=0.8)
+        _assert(barra._display >= 0.79, f"la tarjeta no reenvia el nivel ({barra._display:.3f})")
+        _assert(barra._peak >= 0.79, f"el pico no se registra ({barra._peak:.3f})")
+        # y debe bajar cuando el nivel desaparece
+        for _ in range(45):
+            barra.set_level(0.0)
+        _assert(barra._display < 0.3, f"el vumetro no decae ({barra._display:.3f})")
+        # desactivado, el vumetro se apaga
+        card.set_state(False, False, 1.0, level=0.9)
+        _assert(barra._active is False, "el vumetro sigue activo con la tarjeta apagada")
+
+    step("el vumetro refleja el nivel y decae", check_vumetro)
 
     step("boton Solo", lambda: (
         window._on_card_solo(ikey, True), pump(120),
@@ -138,11 +165,11 @@ def main() -> int:
 
     # ---------------------------------------------------------- prioridad
     step("activar la prioridad automatica", lambda: (
-        window.prio_toggle.setChecked(True), window._on_priority_toggled(True), pump(1200),
+        window.prio_toggle.setChecked(True), window._on_priority_toggled(True), pump(600),
         _assert(window.engine.priority_mode, "el motor no activo el modo prioridad"),
         _assert(window.priority_page.isVisible() and not window.outputs_page.isVisible(),
                 "no se cambio a la vista de prioridad"),
-        _assert(len(window.priority_rows) == len(window.outputs), 
+        _assert(_wait(lambda: len(window.priority_rows) == len(window.outputs), 5.0),
                 f"filas={len(window.priority_rows)} salidas={len(window.outputs)}")))
 
     def check_primary_is_first():

@@ -13,11 +13,60 @@ Reglas de diseno (para que funcione en *cualquier* PC):
 
 from __future__ import annotations
 
+import ctypes
 import re
 import unicodedata
 from dataclasses import dataclass
 
 import sounddevice as sd
+
+
+# --------------------------------------------------------------------------
+# COM por hilo (Windows)
+# --------------------------------------------------------------------------
+#: COINIT_MULTITHREADED. Es el apartamento correcto para un hilo que no
+#: procesa mensajes de ventana.
+_COINIT_MULTITHREADED = 0x2
+
+
+def init_com() -> bool:
+    """Inicializa COM en el hilo actual.
+
+    **Es obligatorio antes de tocar PortAudio/WASAPI desde un hilo que no sea
+    el principal.** Windows exige que COM este inicializado en el hilo que
+    hace las llamadas, y PortAudio solo lo hace por el hilo que ejecuta
+    ``Pa_Initialize``. Si un hilo trabajador abre o arranca un stream sin
+    esto, el fallo que aparece es enganoso y no menciona COM para nada:
+
+        PortAudioError: Error starting stream: Unanticipated host error
+        [PaErrorCode -9999]: 'WdmSyncIoctl: DeviceIoControl GLE = 0x00000492'
+        (que significa "el conjunto de propiedades especificado no existe")
+
+    Devuelve ``True`` solo si COM lo inicializo *este* hilo (S_OK). Si ya
+    estaba inicializado (``S_FALSE``) o lo estaba con otro apartamento
+    (``RPC_E_CHANGED_MODE``) devuelve ``False``, y en ese caso **no** hay que
+    llamar a ``liberar_com()`` para no desbalancear el contador de COM.
+    """
+    try:
+        resultado = ctypes.windll.ole32.CoInitializeEx(None, _COINIT_MULTITHREADED)
+        return int(resultado) == 0  # S_OK
+    except Exception:
+        # En plataformas que no son Windows, o si ole32 no esta, no hay nada
+        # que hacer: PortAudio tampoco necesitara COM.
+        return False
+
+
+def liberar_com(inicializado: bool) -> None:
+    """Deshace ``init_com()`` al terminar el hilo.
+
+    Solo debe llamarse si ``init_com()`` devolvio ``True``.
+    """
+    if not inicializado:
+        return
+    try:
+        ctypes.windll.ole32.CoUninitialize()
+    except Exception:
+        pass
 
 # --------------------------------------------------------------------------
 # Controladores

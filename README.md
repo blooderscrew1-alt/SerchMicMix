@@ -1,4 +1,4 @@
-﻿# 🎛️ Serch MicMix
+# 🎛️ Serch MicMix
 
 **Mezclador de audio sencillo y moderno para Windows**, con integración automática
 de **VB-Cable** (VB-Audio Virtual Cable).
@@ -288,6 +288,8 @@ serchmicmix. El aviso amarillo desaparecerá solo.
 | **La prioridad no cambia a la bocina Bluetooth** | Comprueba que esté **en la lista** (si la quitaste con **×** no vuelve sola: añádela con *Añadir salida*). Y que aparezca como *Conectada*, no como *No disponible*. |
 | **La prioridad salta entre dos salidas sin parar** | Alguna está fallando al abrirse de forma intermitente. Quítala de la lista con **×** o revisa el dispositivo en Windows. |
 | **No oigo nada** | Comprueba que haya al menos una **salida** encendida. Si usas prioridad automática, mira el aviso de abajo: si dice que ninguna está disponible, enciende una bocina o añade otra salida. |
+| **El vúmetro no se mueve al encender un micrófono** | Si a los pocos segundos la tarjeta avisa **«Sin señal»**, el dispositivo está abierto pero no entrega audio. Causas típicas: el micrófono está **silenciado** o con el volumen a 0 en Windows; falta el permiso de **Privacidad → Micrófono**; o has elegido una **entrada virtual** que solo da señal cuando hay algo emitiendo (las de *Steam Streaming* son así, y además suelen ser la entrada predeterminada del sistema sin que te des cuenta). |
+| **La entrada predeterminada de Windows no es un micrófono** | Es muy común que lo sea un dispositivo virtual (Steam, por ejemplo). Revísalo en **Configuración → Sistema → Sonido → Entrada**: cualquier programa que use «el micrófono por defecto» —incluidos los navegadores— no oirá nada hasta que lo cambies. |
 | **La instalación de VB-Cable se queda parada** | Es el aviso de administrador de Windows esperando detrás de la ventana, o el instalador de VB-Audio pidiendo que pulses «Install Driver». Busca esa ventana. |
 | **Quiero desinstalar VB-Cable** | Panel de control → Programas → *VB-Audio Virtual Cable* → Desinstalar. O ejecuta `%LOCALAPPDATA%\SerchMicMix\vbcable\VBCABLE_Setup_x64.exe` y pulsa *Remove Driver*. |
 
